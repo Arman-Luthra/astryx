@@ -62,7 +62,16 @@ import type {
   DropdownMenuSection,
 } from '../DropdownMenu/DropdownMenu';
 
+// Long-press tuning for touch invocation (menus-8).
+const LONG_PRESS_MS = 500;
+const MOVE_CANCEL_PX = 10;
+
 const styles = stylex.create({
+  // Trigger wrapper: suppress the iOS long-press callout/selection so the
+  // long-press opens our context menu instead of the native text/callout UI.
+  trigger: {
+    WebkitTouchCallout: 'none',
+  },
   menu: {
     boxSizing: 'border-box',
     display: 'flex',
@@ -325,7 +334,18 @@ export function ContextMenu({
         return;
       }
       e.preventDefault();
-      positionRef.current = {x: e.clientX, y: e.clientY};
+      // A keyboard-initiated contextmenu (Shift+F10 / the Menu key) fires a
+      // `contextmenu` event whose coordinates are (0, 0) in several browsers.
+      // Detect that and anchor the menu to the trigger's box instead, so the
+      // menu is reachable without a pointer (menus-8).
+      const isKeyboardInvoked =
+        e.clientX === 0 && e.clientY === 0 && e.detail === 0;
+      if (isKeyboardInvoked && e.currentTarget instanceof HTMLElement) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        positionRef.current = {x: rect.left, y: rect.bottom};
+      } else {
+        positionRef.current = {x: e.clientX, y: e.clientY};
+      }
       // Remember the element focused before opening so we can restore it on
       // close (Escape or outside-click), instead of dropping focus to <body>.
       triggerFocusRef.current =
@@ -339,6 +359,67 @@ export function ContextMenu({
     },
     [isDisabled, layer, hasAutoFocus, focusFirst],
   );
+
+  // Touch long-press invocation (menus-8). iOS Safari never synthesizes a
+  // `contextmenu` event on long-press, so a context menu is otherwise
+  // unreachable on touch. Start a timer on touchstart; open at the touch point
+  // after LONG_PRESS_MS unless the finger moves past MOVE_CANCEL_PX or lifts.
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartRef = useRef<{x: number; y: number} | null>(null);
+
+  const clearLongPress = useCallback(() => {
+    if (longPressTimerRef.current != null) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    touchStartRef.current = null;
+  }, []);
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (isDisabled || e.touches.length !== 1) {
+        return;
+      }
+      const touch = e.touches[0];
+      // Clear any stale timer first, THEN record the start point — clearing
+      // also nulls touchStartRef, so order matters.
+      clearLongPress();
+      touchStartRef.current = {x: touch.clientX, y: touch.clientY};
+      longPressTimerRef.current = setTimeout(() => {
+        const start = touchStartRef.current;
+        if (start == null) {
+          return;
+        }
+        positionRef.current = {x: start.x, y: start.y};
+        layer.show();
+        if (hasAutoFocus) {
+          requestAnimationFrame(() => focusFirst());
+        }
+      }, LONG_PRESS_MS);
+    },
+    [isDisabled, clearLongPress, layer, hasAutoFocus, focusFirst],
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      const start = touchStartRef.current;
+      if (start == null || e.touches.length !== 1) {
+        return;
+      }
+      const touch = e.touches[0];
+      if (
+        Math.abs(touch.clientX - start.x) > MOVE_CANCEL_PX ||
+        Math.abs(touch.clientY - start.y) > MOVE_CANCEL_PX
+      ) {
+        // Treat as a scroll/drag, not a long-press.
+        clearLongPress();
+      }
+    },
+    [clearLongPress],
+  );
+
+  // Cancel any pending long-press timer on unmount.
+  useEffect(() => clearLongPress, [clearLongPress]);
 
   const popoverXstyle = menuWidth
     ? styles.popoverCustomWidth(menuWidth)
@@ -354,7 +435,15 @@ export function ContextMenu({
 
   return (
     <>
-      <div ref={ref} onContextMenu={handleContextMenu} data-testid={testId}>
+      <div
+        ref={ref}
+        onContextMenu={handleContextMenu}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={clearLongPress}
+        onTouchCancel={clearLongPress}
+        data-testid={testId}
+        {...stylex.props(styles.trigger)}>
         {children}
       </div>
 
