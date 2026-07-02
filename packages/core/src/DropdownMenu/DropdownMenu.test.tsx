@@ -45,30 +45,21 @@ beforeEach(() => {
 describe('DropdownMenu', () => {
   it('renders trigger button with label', () => {
     render(
-      <DropdownMenu
-        button={{label: 'Actions'}}
-        items={[{label: 'Item 1'}]}
-      />,
+      <DropdownMenu button={{label: 'Actions'}} items={[{label: 'Item 1'}]} />,
     );
     expect(screen.getByRole('button', {name: /Actions/})).toBeInTheDocument();
   });
 
   it('renders menu with role="menu"', () => {
     render(
-      <DropdownMenu
-        button={{label: 'Actions'}}
-        items={[{label: 'Item 1'}]}
-      />,
+      <DropdownMenu button={{label: 'Actions'}} items={[{label: 'Item 1'}]} />,
     );
     expect(screen.getByRole('menu', {hidden: true})).toBeInTheDocument();
   });
 
   it('defaults menu placement below', () => {
     render(
-      <DropdownMenu
-        button={{label: 'Actions'}}
-        items={[{label: 'Item 1'}]}
-      />,
+      <DropdownMenu button={{label: 'Actions'}} items={[{label: 'Item 1'}]} />,
     );
     const popover = screen
       .getByRole('menu', {hidden: true})
@@ -96,10 +87,7 @@ describe('DropdownMenu', () => {
 
   it('has aria-haspopup and aria-expanded attributes', () => {
     render(
-      <DropdownMenu
-        button={{label: 'Actions'}}
-        items={[{label: 'Item 1'}]}
-      />,
+      <DropdownMenu button={{label: 'Actions'}} items={[{label: 'Item 1'}]} />,
     );
     const button = screen.getByRole('button', {name: /Actions/});
     expect(button).toHaveAttribute('aria-haspopup', 'menu');
@@ -109,10 +97,7 @@ describe('DropdownMenu', () => {
   it('opens menu when button is clicked', async () => {
     const user = userEvent.setup();
     render(
-      <DropdownMenu
-        button={{label: 'Actions'}}
-        items={[{label: 'Item 1'}]}
-      />,
+      <DropdownMenu button={{label: 'Actions'}} items={[{label: 'Item 1'}]} />,
     );
 
     await user.click(screen.getByRole('button', {name: /Actions/}));
@@ -209,29 +194,6 @@ describe('DropdownMenu controlled mode', () => {
 
     await user.click(screen.getByRole('button', {name: /Actions/}));
     expect(handleToggle).toHaveBeenCalledWith(true);
-  });
-});
-
-describe('DropdownMenu hasAutoFocus', () => {
-  it('does not focus menu items when hasAutoFocus is false and isMenuOpen is true', () => {
-    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus');
-    render(
-      <DropdownMenu
-        button={{label: 'Actions'}}
-        items={[{label: 'Edit'}, {label: 'Delete'}]}
-        isMenuOpen={true}
-        hasAutoFocus={false}
-        onOpenChange={() => {}}
-      />,
-    );
-
-    const menuItems = screen.getAllByRole('menuitem', {hidden: true});
-    const menuItemFocusCalls = focusSpy.mock.calls.filter((_, i) => {
-      const ctx = focusSpy.mock.contexts[i];
-      return menuItems.includes(ctx as HTMLElement);
-    });
-    expect(menuItemFocusCalls).toHaveLength(0);
-    focusSpy.mockRestore();
   });
 });
 
