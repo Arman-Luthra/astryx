@@ -22,7 +22,7 @@
  * A hidden <button> or <a> inside the card provides the accessible role,
  * label, and focus ring — the card surface itself has no role/tabIndex.
  * This gives screen readers a real interactive element to announce while
- * keeping the visual hover/active overlay on the full card.
+ * keeping the visual hover/active tint on the full card.
  *
  * For static display, use Card.
  * For toggle selection, use SelectableCard.
@@ -59,28 +59,35 @@ const styles = stylex.create({
       outlineOffset: '2px',
     },
   },
-  // Hover overlay — guarded by @media (hover: hover) so touch devices
-  // don't show a stuck hover state. Active/pressed state works everywhere.
-  overlay: {
-    '::after': {
-      content: '""',
-      position: 'absolute',
-      inset: 0,
-      borderRadius: 'inherit',
-      pointerEvents: 'none',
-      transitionProperty: 'background-color',
-      transitionDuration: durationVars['--duration-fast'],
-      transitionTimingFunction: easeVars['--ease-standard'],
-      backgroundColor: 'transparent',
-    },
-    ':active::after': {
-      backgroundColor: 'color-mix(in srgb, currentColor 10%, transparent)',
+  // Interaction tint — darken the card's OWN background on hover/active instead
+  // of layering a pseudo-element on top.
+  //
+  // Card routes its variant background through the internal --_card-bg custom
+  // property, so we can tint it variant-agnostically:
+  // `color-mix(in srgb, currentColor N%, var(--_card-bg))`. Because a
+  // background paints across the full border box — under the 1px transparent
+  // border that non-`default` variants carry — this darkens the border region
+  // in lockstep with the surface, so no faint 1px ring shows on hover. It also
+  // works with every overflow mode (unlike a clipped ::after overlay) and
+  // transitions smoothly (unlike a gradient). This mirrors Link, which tints an
+  // owned property (color) on hover rather than compositing an overlay.
+  //
+  // `default` keeps its opaque --color-border-emphasized border, which sits on
+  // top of the background and is unaffected — its surface still tints as before.
+  tint: {
+    transitionProperty: 'background-color',
+    transitionDuration: durationVars['--duration-fast'],
+    transitionTimingFunction: easeVars['--ease-standard'],
+    backgroundColor: {
+      default: 'var(--_card-bg)',
+      ':active': 'color-mix(in srgb, currentColor 10%, var(--_card-bg))',
     },
   },
-  hoverOnPointer: {
+  tintHoverOnPointer: {
     '@media (hover: hover)': {
-      ':hover::after': {
-        backgroundColor: 'color-mix(in srgb, currentColor 5%, transparent)',
+      backgroundColor: {
+        default: null,
+        ':hover': 'color-mix(in srgb, currentColor 5%, var(--_card-bg))',
       },
     },
   },
@@ -264,8 +271,8 @@ export function ClickableCard({
         [
           styles.interactive,
           styles.focusWithin,
-          !isDisabled && styles.overlay,
-          !isDisabled && styles.hoverOnPointer,
+          !isDisabled && styles.tint,
+          !isDisabled && styles.tintHoverOnPointer,
           isDisabled && styles.disabled,
           xstyleProp,
         ] as unknown as StyleXStyles

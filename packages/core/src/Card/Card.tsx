@@ -74,6 +74,13 @@ const styles = stylex.create({
     borderWidth: borderVars['--border-width'],
     borderStyle: 'solid',
     borderColor: 'transparent',
+    // The variant's background is routed through the internal --_card-bg custom
+    // property (set by variantStyles below) rather than applied directly. This
+    // lets interactive compositions (e.g. ClickableCard) tint the card's own
+    // background variant-agnostically via color-mix against var(--_card-bg) —
+    // covering the full border box, including the 1px transparent border, with
+    // no separate overlay. Mirrors the existing --_card-radius convention.
+    backgroundColor: 'var(--_card-bg)',
   },
   withBorder: {
     borderColor: colorVars['--color-border-emphasized'],
@@ -84,46 +91,47 @@ const styles = stylex.create({
   },
 });
 
-// Background variant styles — each maps to a design token
+// Background variant styles — each sets the --_card-bg custom property to a
+// design token, which styles.card consumes via backgroundColor: var(--_card-bg).
 const variantStyles = stylex.create({
   default: {
-    backgroundColor: colorVars['--color-background-card'],
+    '--_card-bg': colorVars['--color-background-card'],
   },
   transparent: {
-    backgroundColor: 'transparent',
+    '--_card-bg': 'transparent',
   },
   muted: {
-    backgroundColor: colorVars['--color-background-muted'],
+    '--_card-bg': colorVars['--color-background-muted'],
   },
   blue: {
-    backgroundColor: colorVars['--color-background-blue'],
+    '--_card-bg': colorVars['--color-background-blue'],
   },
   cyan: {
-    backgroundColor: colorVars['--color-background-cyan'],
+    '--_card-bg': colorVars['--color-background-cyan'],
   },
   gray: {
-    backgroundColor: colorVars['--color-background-gray'],
+    '--_card-bg': colorVars['--color-background-gray'],
   },
   green: {
-    backgroundColor: colorVars['--color-background-green'],
+    '--_card-bg': colorVars['--color-background-green'],
   },
   orange: {
-    backgroundColor: colorVars['--color-background-orange'],
+    '--_card-bg': colorVars['--color-background-orange'],
   },
   pink: {
-    backgroundColor: colorVars['--color-background-pink'],
+    '--_card-bg': colorVars['--color-background-pink'],
   },
   purple: {
-    backgroundColor: colorVars['--color-background-purple'],
+    '--_card-bg': colorVars['--color-background-purple'],
   },
   red: {
-    backgroundColor: colorVars['--color-background-red'],
+    '--_card-bg': colorVars['--color-background-red'],
   },
   teal: {
-    backgroundColor: colorVars['--color-background-teal'],
+    '--_card-bg': colorVars['--color-background-teal'],
   },
   yellow: {
-    backgroundColor: colorVars['--color-background-yellow'],
+    '--_card-bg': colorVars['--color-background-yellow'],
   },
 });
 

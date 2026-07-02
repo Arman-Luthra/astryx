@@ -106,4 +106,46 @@ describe('ClickableCard', () => {
     const link = screen.getByRole('link', {name: 'Disabled link'});
     expect(link).toHaveAttribute('aria-disabled', 'true');
   });
+
+  // The interaction feedback is a hover/active tint applied to the card's own
+  // background (via var(--_card-bg)), not a pseudo-element overlay. Because a
+  // background paints across the full border box, this covers the 1px
+  // transparent border that non-`default` variants carry — so no faint 1px
+  // ring shows on hover. These tests lock in that the tint styles are applied
+  // for both default and non-default variants, and removed when disabled.
+  it('applies the background tint styles on the default variant', () => {
+    const {container} = render(
+      <ClickableCard label="Default card" variant="default">
+        Content
+      </ClickableCard>,
+    );
+    const card = container.firstChild as HTMLElement;
+    expect(card.className).toContain('ClickableCard__styles.tint');
+    expect(card.className).toContain(
+      'ClickableCard__styles.tintHoverOnPointer',
+    );
+  });
+
+  it('applies the background tint styles on non-default variants', () => {
+    const {container} = render(
+      <ClickableCard label="Blue card" variant="blue">
+        Content
+      </ClickableCard>,
+    );
+    const card = container.firstChild as HTMLElement;
+    expect(card.className).toContain('ClickableCard__styles.tint');
+    expect(card.className).toContain(
+      'ClickableCard__styles.tintHoverOnPointer',
+    );
+  });
+
+  it('does NOT apply the tint styles when disabled', () => {
+    const {container} = render(
+      <ClickableCard label="Disabled blue" variant="blue" isDisabled>
+        Content
+      </ClickableCard>,
+    );
+    const card = container.firstChild as HTMLElement;
+    expect(card.className).not.toContain('ClickableCard__styles.tint');
+  });
 });
